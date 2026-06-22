@@ -1,0 +1,41 @@
+name: Update Folder List
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  update-list:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate folders.json
+        run: |
+          echo "[]" > folders.json
+          # Loop through each date folder
+          for folder_path in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*/; do
+            folder="${folder_path%/}"
+            
+            # Try 1: Extract thumbnail from index.html (matches TellMe export format)
+            thumb=$(grep -oP '"thumbnail":\s*"\K[^"]+' "$folder/index.html" | head -1 || echo "")
+            
+            # Try 2: Fallback to any JPG if no thumbnail found in file metadata
+            if [ -z "$thumb" ]; then
+              thumb=$(find "$folder" -name "*.jpg" -o -name "*.png" | head -1 | sed "s|$folder/||" || echo "")
+            fi
+            
+            # Add to json using jq
+            jq --arg name "$folder" --arg thumb "$thumb" '. += [{name: $name, thumbnail: $thumb}]' folders.json > tmp.json && mv tmp.json folders.json
+          done
+          
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add folders.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update folders.json" && git push)

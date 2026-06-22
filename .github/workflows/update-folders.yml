@@ -17,26 +17,29 @@ jobs:
       - name: Generate folders.json and Update index.html
         run: |
           echo "[]" > folders.json
-          # Loop through each date folder
+          # Use nullglob to avoid the loop running if no folders match the pattern
+          shopt -s nullglob
           for folder_path in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*/; do
             folder="${folder_path%/}"
             
-            # Try 1: Extract thumbnail from index.html (matches TellMe export format)
-            thumb=$(grep -oP '"thumbnail":\s*"\K[^"]+' "$folder/index.html" | head -1 || echo "")
-            
-            # Try 2: Fallback to any JPG if no thumbnail found in file metadata
-            if [ -z "$thumb" ]; then
-              thumb=$(find "$folder" -name "*.jpg" -o -name "*.png" | head -1 | sed "s|$folder/||" || echo "")
+            thumb=""
+            # Try 1: Extract thumbnail from index.html if it exists
+            if [ -f "$folder/index.html" ]; then
+              thumb=$(grep -oP '"thumbnail":\s*"\K[^"]+' "$folder/index.html" 2>/dev/null | head -1 || echo "")
             fi
             
-            # Add to json using jq
+            # Try 2: Fallback to any image found in the folder
+            if [ -z "$thumb" ]; then
+              thumb=$(find "$folder" -type f \( -iname "*.jpg" -o -iname "*.png" -o -iname "*.webp" \) 2>/dev/null | head -1 | sed "s|^$folder/||" || echo "")
+            fi
+            
+            # Update the JSON file
             jq --arg name "$folder" --arg thumb "$thumb" '. += [{name: $name, thumbnail: $thumb}]' folders.json > tmp.json && mv tmp.json folders.json
           done
-
-          # Embed folders.json content back into index.html to update the homepage
-          json_content=$(cat folders.json)
-          # Use a temporary file to handle the replacement safely
-          perl -0777 -pi -e 's/<script id="folder-data" type="application/json">.*?<\/script>/<script id="folder-data" type="application/json">\n        '"$json_content"'\n    <\/script>/s' index.html
+          
+          # Safely inject the JSON into index.html using an environment variable and '|' delimiter
+          export JSON_DATA=$(cat folders.json)
+          perl -0777 -pi -e 's|(<script id="folder-data" type="application/json">).*?(</script>)|$1\n        $ENV{JSON_DATA}\n    $2|sg' index.html
           
       - name: Commit and push if changed
         run: |

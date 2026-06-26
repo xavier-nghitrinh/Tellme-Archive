@@ -1608,40 +1608,7 @@
     }
   }
 
-  /* Filters styling */
-  .pill-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 4px 0;
-  }
-  .pill-btn {
-    padding: 6px 14px;
-    border-radius: 9999px;
-    font-size: 11px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(30, 41, 59, 0.4);
-    color: #94a3b8;
-  }
-  .pill-active {
-    background: #7c3aed;
-    color: white;
-    border-color: #8b5cf6;
-    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-  }
-  .pill-inactive:hover {
-    background: rgba(30, 41, 59, 0.8);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: white;
-  }
-  #month-row, #day-row {
-    margin-top: 4px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 10px;
-  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -1666,12 +1633,6 @@
   }
 
   /* Header Collapse states */
-  .header-collapsed .filters {
-    display: none !important;
-  }
-  .header-collapsed #header-top-row {
-    padding-bottom: 0;
-  }
   .header-collapsed .max-w-7xl {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
@@ -1702,12 +1663,7 @@
         </div>
       </div>
 
-      <!-- Filters Inside Header -->
-      <div class="filters space-y-1">
-        <div id="year-row" class="pill-row"></div>
-        <div id="month-row" class="pill-row" style="display:none"></div>
-        <div id="day-row" class="pill-row" style="display:none"></div>
-      </div>
+
     </div>
   </header>
 
@@ -1884,65 +1840,6 @@
   const btnCloseLightbox = document.getElementById('btn-close-lightbox');
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
-
-  function _pillBtn(label, active, onClick) {
-    var b=document.createElement('button');
-    b.className='pill-btn '+(active ? 'pill-active' : 'pill-inactive');
-    b.textContent=label;
-    b.addEventListener('click', onClick);
-    return b;
-  }
-
-  function _renderFilter() {
-    var years=allDates.map(function(d){ return d.slice(0,4); }).filter(function(y,i,a){ return a.indexOf(y)===i; }).sort();
-    var yRow=document.getElementById('year-row');
-    yRow.innerHTML='';
-    years.forEach(function(yr){
-      yRow.appendChild(_pillBtn(yr,_selYear===yr,function(){
-        _selYear=yr;_selMonth=null;_selDay=null;
-        var mos=allDates.filter(function(d){ return d.startsWith(yr); }).map(function(d){ return d.slice(5,7); }).filter(function(m,i,a){ return a.indexOf(m)===i; }).sort();
-        if (mos.length){ 
-          _selMonth=mos[0]; 
-          var dys=allDates.filter(function(d){ return d.startsWith(yr+'-'+mos[0]); }); 
-          if (dys.length) _selDay=dys[dys.length-1].slice(8,10); 
-        }
-        _renderFilter();
-        if (_selYear&&_selMonth&&_selDay) renderList(_selYear+'-'+_selMonth+'-'+_selDay);
-      }));
-    });
-
-    var mRow=document.getElementById('month-row');
-    mRow.innerHTML='';
-    if (_selYear){
-      mRow.style.display='';
-      var mos2=allDates.filter(function(d){ return d.startsWith(_selYear); }).map(function(d){ return d.slice(5,7); }).filter(function(m,i,a){ return a.indexOf(m)===i; }).sort();
-      mos2.forEach(function(mo){
-        mRow.appendChild(_pillBtn(_selYear+'-'+mo,_selMonth===mo,function(){
-          _selMonth=mo;_selDay=null;
-          var dys=allDates.filter(function(d){ return d.startsWith(_selYear+'-'+mo); });
-          if (dys.length) _selDay=dys[dys.length-1].slice(8,10);
-          _renderFilter();
-          if (_selDay) renderList(_selYear+'-'+_selMonth+'-'+_selDay);
-        }));
-      });
-    } else { mRow.style.display='none'; }
-
-    var dRow=document.getElementById('day-row');
-    dRow.innerHTML='';
-    if (_selYear&&_selMonth){
-      dRow.style.display='';
-      var pfx=_selYear+'-'+_selMonth;
-      var dys2=allDates.filter(function(d){ return d.startsWith(pfx); }).map(function(d){ return d.slice(8,10); }).filter(function(dy,i,a){ return a.indexOf(dy)===i; }).sort();
-      dys2.forEach(function(dy){
-        var fullDate=_selYear+'-'+_selMonth+'-'+dy;
-        var lbl2=dayLabels[fullDate];
-        var btnLabel=lbl2 ? dy+' · '+lbl2 : dy;
-        dRow.appendChild(_pillBtn(btnLabel,_selDay===dy,function(){
-          _selDay=dy; _renderFilter(); renderList(fullDate);
-        }));
-      });
-    } else { dRow.style.display='none'; }
-  }
 
   function getOptimalPartition(items) {
     let remaining = items.length;
@@ -2460,7 +2357,7 @@ Trace a Looker dashboard metric back to its exact BigQuery source column. Automa
   if (allDates.length) {
     var _last=allDates[allDates.length-1];
     _selYear=_last.slice(0,4); _selMonth=_last.slice(5,7); _selDay=_last.slice(8,10);
-    _renderFilter(); renderList(_last);
+    renderList(_last);
   } else { galleryContainer.innerHTML = '<div class="col-span-12 text-center py-20 text-gray-500">No data in this export.</div>'; }
 
   const mainHeader = document.getElementById('main-header');

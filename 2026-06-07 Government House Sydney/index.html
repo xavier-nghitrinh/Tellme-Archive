@@ -2450,8 +2450,8 @@
     if (absY > absX * 0.5) return; // Skip if it's too "diagonal" or mostly vertical
     if (absY > swipeMaxY) return;  // Skip if vertical movement is too high
 
-    if (dx > 0) navigateLightbox('next');
-    else navigateLightbox('prev');
+    if (dx > 0) navigateLightbox('prev');
+    else navigateLightbox('next');
   }
 
   document.addEventListener('keydown', (e) => {

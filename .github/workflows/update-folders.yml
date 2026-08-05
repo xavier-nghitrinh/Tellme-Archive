@@ -23,7 +23,7 @@ jobs:
             folder="${folder_path%/}"
             
             thumb=""
-            # Try 1: Extract thumbnail from index.html if it exists
+            # Try 1: Extract thumbnail from index.html if it exists (may be a base64 data URI for standalone pages)
             if [ -f "$folder/index.html" ]; then
               thumb=$(grep -oP '"thumbnail":\s*"\K[^"]+' "$folder/index.html" 2>/dev/null | head -1 || echo "")
             fi
@@ -37,9 +37,15 @@ jobs:
             jq --arg name "$folder" --arg thumb "$thumb" '. += [{name: $name, thumbnail: $thumb}]' folders.json > tmp.json && mv tmp.json folders.json
           done
           
-          # Safely inject the JSON into index.html using an environment variable and '|' delimiter
-          export JSON_DATA=$(cat folders.json)
-          perl -0777 -pi -e 's|(<script id="folder-data" type="application/json">).*?(</script>)|$1\n        $ENV{JSON_DATA}\n    $2|sg' index.html
+          # Inject the JSON into index.html by reading folders.json directly from disk in Perl
+          # (avoids passing it through an env var / argv, which has an OS size limit)
+          perl -0777 -pi -e '
+            local $/;
+            open(my $fh, "<", "folders.json") or die $!;
+            my $json = <$fh>;
+            close $fh;
+            s|(<script id="folder-data" type="application/json">).*?(</script>)|$1\n        $json\n    $2|sg;
+          ' index.html
           
       - name: Commit and push if changed
         run: |
